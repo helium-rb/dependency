@@ -1,8 +1,6 @@
 # Helium::Dependency
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/helium/dependency`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+Simple dependency inkjection for Ruby object.
 
 ## Installation
 
@@ -22,7 +20,34 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Simply include `Helium::Dependency` and then define the list of dependencies, together with a block to create default injection.
+Injected value are already available when the default block is evaluated, so dependencies can reference each other.
+
+```
+class Bike
+  include Helium::Dependency
+
+  dependency(:wheel_size) { 26 }
+  dependency(:wheels, public: true) { Array.new(2) { Wheel.new(size: wheel_size) } }
+end
+
+Bike.new(wheel_size: 20).wheels #=> [#Wheel(@size: 20), #Wheel(@size: 20)]
+```
+
+Injection happens in the class `new` method before `initialize` is called, so you can define your own initialization and use dependencies inside it.
+
+```
+class NamedBike < Bike
+  def initialize(name)
+    @name = "#{name} (#{wheels.map(&:size).join(', ')})"
+  end
+
+  attr_reader :name
+end
+
+NamedBike.new("Steven").name #=> "Steven (26, 26)"
+NamedBike.new("Lil Steven", wheel_size: 16).name #=> "Lil Steven (16, 16)"
+```
 
 ## Development
 

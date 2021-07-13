@@ -4,7 +4,7 @@ RSpec.describe Helium::Dependency do
       include Helium::Dependency
 
       dependency(:object) { "object" }
-      dependency(:id) { "object-#{object.object_id}" }
+      dependency(:id, public: true) { "object-#{object.object_id}" }
 
       def initialize(name)
         @name = name
@@ -23,7 +23,7 @@ RSpec.describe Helium::Dependency do
     end
 
     it "allows referencing other dependencies" do
-      expect(subject.send(:id)).to eq "object-#{subject.send(:object).object_id}"
+      expect(subject.id).to eq "object-#{subject.send(:object).object_id}"
     end
 
     it "does not override initialize method" do
@@ -42,11 +42,36 @@ RSpec.describe Helium::Dependency do
     end
 
     it "allows referencing other dependencies" do
-      expect(subject.send(:id)).to eq "object-#{object.object_id}"
+      expect(subject.id).to eq "object-#{object.object_id}"
     end
 
     it "does not override initialize method" do
       expect(subject.name).to eq name
+    end
+  end
+
+  describe "in a subclass" do
+    let(:subclass) do
+      Class.new(klass) do
+        dependency(:subclass_dependency) { "hello" }
+      end
+    end
+
+    subject { subclass.new("some name") }
+
+    it "inherits parent class dependencies" do
+      expect(subject.id).to eq "object-#{subject.send(:object).object_id}"
+    end
+
+    it "has own dependencies" do
+      expect(subject.send :subclass_dependency).to eq "hello"
+    end
+
+    it "does not add dependency to the parent class" do
+      subject # ensures the subclass is evaluated
+      parent_class_object = klass.new("name")
+
+      expect { klass.new('').send :subclass_dependency }.to raise_error NameError
     end
   end
 end

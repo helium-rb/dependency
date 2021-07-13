@@ -29,14 +29,14 @@ module Helium
         instance
       end
 
-      def dependency(name, &default_block)
+      def dependency(name, public: false, &default_block)
         dependencies << name
 
         define_method(name) do
           @deps[name] ||= instance_exec(&default_block)
         end
 
-        private name
+        private(name) unless public
       end
 
       def dependencies
