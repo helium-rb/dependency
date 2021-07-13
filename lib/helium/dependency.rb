@@ -6,10 +6,29 @@ module Helium
 
     def self.included(mod)
       mod.extend ClassMethods
-      mod.prepend Initialization
     end
 
     module ClassMethods
+      def new(*args, **kwargs, &block)
+        instance = allocate
+
+        deps = {}
+        dependencies.each do |dep|
+          next unless kwargs.key?(dep)
+          deps[dep] = kwargs.delete(dep)
+        end
+
+        instance.instance_variable_set(:@deps, deps)
+
+        if kwargs.any?
+          instance.send :initialize, *args, **kwargs, &block
+        else
+          instance.send :initialize, *args, &block
+        end
+
+        instance
+      end
+
       def dependency(name, &default_block)
         dependencies << name
 
@@ -25,22 +44,5 @@ module Helium
       end
     end
 
-    module Initialization
-      def initialize(*args, **kwargs, &block)
-        @deps = {}
-
-        self.class.dependencies.each do |dep|
-          next unless kwargs.key?(dep)
-
-          @deps[dep] = kwargs.delete(dep)
-        end
-
-        if kwargs.any?
-          super *args, **kwargs, &block
-        else
-          super *args, &block
-        end
-      end
-    end
   end
 end
